@@ -1,8 +1,12 @@
+dist: trusty
 language: rust
 rust: nightly
-sudo: false
 
 matrix:
+  # clear matrix
+  exclude:
+    - env: TRAVIS_RUST_VERSION=nightly
+  # then populate it
   include:
     - env: TARGET=x86_64-unknown-linux-gnu
     - env: TARGET=thumbv7m-none-eabi
