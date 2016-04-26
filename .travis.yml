@@ -1,0 +1,22 @@
+language: rust
+rust: nightly
+sudo: false
+
+matrix:
+  include:
+    - env: TARGET=x86_64-unknown-linux-gnu
+    - env: TARGET=thumbv7m-none-eabi
+      addons:
+        apt:
+          packages:
+            - gcc-arm-none-eabi
+
+script:
+  - cargo build --target $TARGET
+
+branches:
+  only: master
+
+notifications:
+  email:
+    on_success: never
