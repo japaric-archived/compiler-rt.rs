@@ -13,7 +13,7 @@ install:
   - bash ci/install.sh
 
 script:
-  - cargo build --target $TARGET
+  - bash ci/script.sh
 
 branches:
   only: master
