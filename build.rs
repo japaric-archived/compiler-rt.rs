@@ -15,11 +15,26 @@ macro_rules! try {
 }
 
 fn main() {
+    // FIXME Instead of `$TARGET` I want to use the target's `llvm-target` field but, currently,
+    // there's no way to do that AFAICT. It would be also helpful if I could access the target's
+    // `os` and `arch` fields.
+    let target = &try!(env::var("TARGET"));
+    let target_ = target.replace("-", "_");
+
+    must_exist(&format!("AR_{}", target_));
+    must_exist(&format!("CC_{}", target_));
+
     let td = try!(TempDir::new("compiler-rt"));
     let src = td.path();
 
     fetch(src);
-    build(src);
+    build(src, target);
+}
+
+fn must_exist(var: &str) {
+    if env::var_os(var).is_none() {
+        panic!("{} not set", var);
+    }
 }
 
 fn fetch(td: &Path) {
@@ -35,7 +50,7 @@ fn fetch(td: &Path) {
                 .success());
 }
 
-fn build(src: &Path) {
+fn build(src: &Path, target: &str) {
     // FIXME(copied from compiler-rt source) atomic.c may only be compiled if host compiler
     // understands _Atomic
     const GENERIC_SOURCES: &'static [&'static str] = &["absvdi2.c",
@@ -302,10 +317,6 @@ fn build(src: &Path) {
                                                         "arm/unorddf2vfp.S",
                                                         "arm/unordsf2vfp.S"];
 
-    // FIXME Instead of `$TARGET` I want to use the target's `llvm-target` field but, currently,
-    // there's no way to do that AFAICT. It would be also helpful if I could access the target's
-    // `os` and `arch` fields.
-    let target = try!(env::var("TARGET"));
     let mut config = Config::new();
     for source in GENERIC_SOURCES {
         if target.contains("none") {
