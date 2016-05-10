@@ -4,7 +4,5 @@
     "llvm-target": "thumbv7m-none-eabi",
     "os": "none",
     "target-endian": "little",
-    "target-pointer-width": "32",
-
-    "linker": "arm-none-eabi-gcc"
+    "target-pointer-width": "32"
 }

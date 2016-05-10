@@ -6,10 +6,16 @@ matrix:
   exclude:
     - rust: nightly
   include:
-    - env: TARGET=x86_64-unknown-linux-gnu
+    - env: TARGET=cortex-m3
+      dist: trusty
+      sudo: required
+    - env: TARGET=no-linker-field
+      dist: trusty
+      sudo: required
     - env: TARGET=thumbv7m-none-eabi
       dist: trusty
       sudo: required
+    - env: TARGET=x86_64-unknown-linux-gnu
 
 before_install:
   - sudo apt-get update

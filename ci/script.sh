@@ -3,21 +3,12 @@ set -ex
 . $(dirname $0)/utils.sh
 
 main() {
-    local prefix=
     case $TARGET in
-        thumbv7m-none-eabi)
-            prefix=arm-none-eabi-
-            ;;
-        x86_64-unknown-linux-gnu)
-            prefix=
-            ;;
-        *)
-            die "unhandled target: $TARGET"
+        no-linker-field)
+            export AR_no_linker_field=arm-none-eabi-ar
+            export CC_no_linker_field=arm-none-eabi-gcc
             ;;
     esac
-
-    export AR_${TARGET//-/_}=${prefix}ar
-    export CC_${TARGET//-/_}=${prefix}gcc
 
     cargo build --target $TARGET
 }

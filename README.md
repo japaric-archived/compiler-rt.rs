@@ -30,9 +30,9 @@ it's currently lacking a way to cross compile compiler-rt for custom targets.
 - You do **not** need to add `extern crate compiler_rt` anywhere.
 - For custom targets, make sure that the `no-compiler-rt` field is set to `false`, which is the
 default. If the field is missing from your specification file, that's OK.
-- For custom targets, the name of the target must match its `llvm-target` field. (See [caveats])
-- The variables `CC_${TARGET//-/_}` and `AR_${TARGET//-/_}`  must be set to `$prefix-gcc` and
-`$prefix-ar` respectively.
+- The `linker` field must be set to `$prefix-gcc` **or** the variables `CC_${TARGET//-/_}` and
+`AR_${TARGET//-/_}`  must be set to `$prefix-gcc` and `$prefix-ar` respectively. If both are set,
+the env variables take precedence.
 
 (\*) It's unclear to me what happens if *two different* versions of this crate appear in your
 dependency graph. Cargo will probably raise an error at link time.
@@ -45,21 +45,18 @@ $ tail -n2 Cargo.toml
 git = "https://github.com/japaric/compiler-rt.rs"
 
 # `no-compiler-rt` is not set
-$ cat thumbv7m-none-eabi.json | grep no-compiler-rt
+$ grep no-compiler-rt cortex-m3.json
 
-$ cat thumbv7m-none-eabi.json | grep llvm-target
-    "llvm-target": "thumbv7m-none-eabi",
+$ grep linker cortex-m3.json
+    "linker": "arm-none-eabi-gcc"
     
-$ export AR_thumbv7m_none_eabi=arm-none-eabi-ar
-$ export CC_thumbv7m_none_eabi=arm-none-eabi-gcc
-
-$ cargo build --target thumbv7m-none-eabi
+$ cargo build --target cortex-m3
 (..)
    Compiling compiler-rt v0.1.0
 (..)
    
 $ find -name '*.a'
-./target/thumbv7m-none-eabi/debug/build/compiler-rt-470fb48a4f2daa6c/out/libcompiler-rt.a
+./target/cortex-m3/debug/build/compiler-rt-d33efb9ff92c364e/out/libcompiler-rt.a
 ```
 
 ## Caveats
@@ -71,9 +68,6 @@ implemented and tested.
 - Requires `git` to be in your `$PATH`. This requirement will be lifted in the future.
 - Requires a nightly `rustc` because this crate is `no_core`, but it may make sense to make this
 crate `no_std` to make it usable with other channels.
-- The name of the target must match its `llvm-target` field. This limitation is due to the fact that
-build.rs can't access the value of the target's `llvm-target` field (or any other field). This
-limitation could be lifted if something like [rust-lang/rust#32988][0] is implemented.
 
 [0]: https://github.com/rust-lang/rust/pull/32988
 

@@ -1,11 +1,17 @@
 extern crate gcc;
+extern crate serde_json;
 extern crate tempdir;
 
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::env;
-use std::path::Path;
+use std::fs::File;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use gcc::Config;
+use serde_json::Value;
 use tempdir::TempDir;
 
 macro_rules! try {
@@ -14,15 +20,114 @@ macro_rules! try {
     }
 }
 
-fn main() {
-    // FIXME Instead of `$TARGET` I want to use the target's `llvm-target` field but, currently,
-    // there's no way to do that AFAICT. It would be also helpful if I could access the target's
-    // `os` and `arch` fields.
-    let target = &try!(env::var("TARGET"));
-    let target_ = target.replace("-", "_");
+/// Parsed target specification file
+struct Spec(BTreeMap<String, Value>);
 
-    must_exist(&format!("AR_{}", target_));
-    must_exist(&format!("CC_{}", target_));
+impl Spec {
+    fn arch(&self) -> &str {
+        self.mandatory("arch")
+    }
+
+    fn linker(&self) -> Option<&str> {
+        self.optional("linker")
+    }
+
+    fn llvm_target(&self) -> &str {
+        self.mandatory("llvm-target")
+    }
+
+    fn mandatory(&self, field: &str) -> &str {
+        match self.0[field] {
+            Value::String(ref s) => s,
+            _ => unreachable!(),
+        }
+    }
+
+    fn optional(&self, field: &str) -> Option<&str> {
+        self.0.get(field).map(|field| {
+            match *field {
+                Value::String(ref s) => &**s,
+                _ => unreachable!(),
+            }
+        })
+    }
+
+    fn os(&self) -> &str {
+        self.mandatory("os")
+    }
+}
+
+struct Target {
+    name: String,
+    spec: Option<Spec>,
+}
+
+impl Target {
+    // TODO somehow read the specification of built-in targets. This probably requires upstream
+    // (`rustc`) support.
+    fn new(target: &str) -> Self {
+        /// Parse `target` specification file in `dir`ectory, if it's there
+        fn parse(target: &str, dir: &Path) -> Option<Spec> {
+            let path = dir.join(format!("{}.json", target));
+
+            if path.exists() {
+                let json = &mut String::new();
+                try!(try!(File::open(path)).read_to_string(json));
+
+                Some(try!(serde_json::from_str(json).map(Spec)))
+            } else {
+                None
+            }
+        }
+
+        Target {
+            name: target.to_owned(),
+            spec: parse(target, &try!(env::current_dir())).or_else(|| {
+                env::var_os("RUST_TARGET_PATH")
+                    .map(PathBuf::from)
+                    .and_then(|dir| parse(target, &dir))
+            }),
+        }
+    }
+
+    fn arch_is(&self, arch: &str) -> bool {
+        self.spec
+            .as_ref()
+            .map(|spec| spec.arch() == arch)
+            .unwrap_or_else(|| self.name.contains(arch))
+    }
+
+    fn llvm_target(&self) -> &str {
+        // TODO(unwrap_or) for *most* built-in targets, their name matches its `llvm-target` field.
+        // The exceptions (e.g. aarch64-apple-ios) should be handled here.
+        self.spec.as_ref().map(|spec| spec.llvm_target()).unwrap_or(&self.name)
+    }
+
+    fn os_is(&self, os: &str) -> bool {
+        self.spec.as_ref().map(|spec| spec.os() == os).unwrap_or_else(|| self.name.contains(os))
+    }
+
+    fn tool(&self, env: &str, tool: &str) -> Cow<str> {
+        let tool_env = &format!("{}_{}", env, self.name.replace("-", "_"));
+
+        env::var(tool_env)
+            .ok()
+            .or_else(|| {
+                self.spec.as_ref().and_then(|spec| spec.linker()).and_then(|linker| {
+                    if linker.ends_with("gcc") {
+                        Some(linker.replace("gcc", tool))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .map(Cow::from)
+            .expect(&format!("{} not set", tool_env))
+    }
+}
+
+fn main() {
+    let target = &Target::new(&try!(env::var("TARGET")));
 
     let td = try!(TempDir::new("compiler-rt"));
     let src = td.path();
@@ -31,26 +136,17 @@ fn main() {
     build(src, target);
 }
 
-fn must_exist(var: &str) {
-    if env::var_os(var).is_none() {
-        panic!("{} not set", var);
-    }
-}
-
 fn fetch(td: &Path) {
     // FIXME use the `curl`, `flate2`, `tar` crates instead of shelling out to `git`.
     // FIXME Should probably use the rust-lang/compiler-rt repository
     assert!(try!(Command::new("git")
-                     .args(&["clone",
-                             "--depth",
-                             "1",
-                             "https://github.com/llvm-mirror/compiler-rt"])
-                     .arg(td)
-                     .status())
-                .success());
+            .args(&["clone", "--depth", "1", "https://github.com/llvm-mirror/compiler-rt"])
+            .arg(td)
+            .status())
+        .success());
 }
 
-fn build(src: &Path, target: &str) {
+fn build(src: &Path, target: &Target) {
     // FIXME(copied from compiler-rt source) atomic.c may only be compiled if host compiler
     // understands _Atomic
     const GENERIC_SOURCES: &'static [&'static str] = &["absvdi2.c",
@@ -319,7 +415,7 @@ fn build(src: &Path, target: &str) {
 
     let mut config = Config::new();
     for source in GENERIC_SOURCES {
-        if target.contains("none") {
+        if target.os_is("none") {
             if !OS_NONE_BLACKLIST.contains(source) {
                 config.file(src.join("lib/builtins").join(source));
             }
@@ -327,9 +423,10 @@ fn build(src: &Path, target: &str) {
             config.file(src.join("lib/builtins").join(source));
         }
     }
-    if target.starts_with("arm") || target.starts_with("thumb") {
+
+    if target.arch_is("arm") {
         for source in ARM_SOURCES {
-            if !target.ends_with("hf") {
+            if !target.llvm_target().ends_with("hf") {
                 if !NON_HF_BLACKLIST.contains(source) {
                     config.file(src.join("lib/builtins").join(source));
                 }
@@ -338,5 +435,11 @@ fn build(src: &Path, target: &str) {
             }
         }
     }
+
+    if target.name != try!(env::var("HOST")) {
+        config.archiver(Path::new(&*target.tool("AR", "ar")));
+        config.compiler(Path::new(&*target.tool("CC", "gcc")));
+    }
+
     config.compile("libcompiler-rt.a");
 }
