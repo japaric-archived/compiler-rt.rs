@@ -9,6 +9,9 @@ matrix:
     - env: TARGET=cortex-m3
       dist: trusty
       sudo: required
+    - env: TARGET=cortex-m4f
+      dist: trusty
+      sudo: required
     - env: TARGET=no-linker-field
       dist: trusty
       sudo: required
