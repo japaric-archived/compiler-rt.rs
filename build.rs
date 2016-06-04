@@ -450,5 +450,9 @@ fn build(src: &Path, target: &Target) {
         config.flag(&format!("-mcpu={}", cpu));
     }
 
+    if target.llvm_target().starts_with("thumb") {
+        config.flag("-mthumb");
+    }
+
     config.compile("libcompiler-rt.a");
 }
