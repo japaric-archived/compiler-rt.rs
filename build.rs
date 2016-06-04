@@ -28,6 +28,10 @@ impl Spec {
         self.mandatory("arch")
     }
 
+    fn cpu(&self) -> Option<&str> {
+        self.optional("cpu")
+    }
+
     fn linker(&self) -> Option<&str> {
         self.optional("linker")
     }
@@ -439,6 +443,11 @@ fn build(src: &Path, target: &Target) {
     if target.name != try!(env::var("HOST")) {
         config.archiver(Path::new(&*target.tool("AR", "ar")));
         config.compiler(Path::new(&*target.tool("CC", "gcc")));
+    }
+
+    // CPU optimization
+    if let Some(cpu) = target.cpu() {
+        config.flag(&format!("-mcpu={}", cpu));
     }
 
     config.compile("libcompiler-rt.a");
