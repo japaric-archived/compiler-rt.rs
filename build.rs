@@ -28,10 +28,6 @@ impl Spec {
         self.mandatory("arch")
     }
 
-    fn cpu(&self) -> Option<&str> {
-        self.optional("cpu")
-    }
-
     fn linker(&self) -> Option<&str> {
         self.optional("linker")
     }
@@ -99,6 +95,10 @@ impl Target {
             .as_ref()
             .map(|spec| spec.arch() == arch)
             .unwrap_or_else(|| self.name.contains(arch))
+    }
+
+    fn cpu(&self) -> Option<&str> {
+        self.spec.as_ref().and_then(|spec| spec.optional("cpu"))
     }
 
     fn llvm_target(&self) -> &str {
