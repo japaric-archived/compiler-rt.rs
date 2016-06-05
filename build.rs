@@ -379,6 +379,10 @@ fn build(src: &Path, target: &Target) {
                                                    "arm/unorddf2vfp.S",
                                                    "arm/unordsf2vfp.S"];
 
+    // NOTE These asm implementations only work in ARM mode. IOW, these don't work in THUMB mode.
+    const THUMB_BLACKLIST: &'static [&'static str] = &["arm/aeabi_cdcmp.S",
+                                                       "arm/aeabi_cfcmp.S"];
+
     const OS_NONE_BLACKLIST: &'static [&'static str] = &["enable_execute_stack.c"];
 
     const NON_HF_BLACKLIST: &'static [&'static str] = &["arm/adddf3vfp.S",
@@ -430,13 +434,17 @@ fn build(src: &Path, target: &Target) {
 
     if target.arch_is("arm") {
         for source in ARM_SOURCES {
-            if !target.llvm_target().ends_with("hf") {
-                if !NON_HF_BLACKLIST.contains(source) {
-                    config.file(src.join("lib/builtins").join(source));
-                }
-            } else {
-                config.file(src.join("lib/builtins").join(source));
+            if target.llvm_target().starts_with("thumb") && THUMB_BLACKLIST.contains(source) {
+                continue
             }
+
+            // FIXME this is wrong for Cortex-M processors, e.g. the llvm-target field of the
+            // cortex-m4f target  doesn't end in hf but it does support FPU instructions.
+            if !target.llvm_target().ends_with("hf") && NON_HF_BLACKLIST.contains(source) {
+                continue
+            }
+
+            config.file(src.join("lib/builtins").join(source));
         }
     }
 
@@ -445,11 +453,27 @@ fn build(src: &Path, target: &Target) {
         config.compiler(Path::new(&*target.tool("CC", "gcc")));
     }
 
+    // ARM arch optimization
+    if target.arch_is("arm") {
+        if target.llvm_target().contains("v6m") {
+            config.flag("-march=armv6-m");
+        }
+
+        if target.llvm_target().contains("v7m") {
+            config.flag("-march=armv7-m");
+        }
+
+        if target.llvm_target().contains("v7em") {
+            config.flag("-march=armv7e-m");
+        }
+    }
+
     // CPU optimization
     if let Some(cpu) = target.cpu() {
         config.flag(&format!("-mcpu={}", cpu));
     }
 
+    // THUMB mode
     if target.llvm_target().starts_with("thumb") {
         config.flag("-mthumb");
     }
