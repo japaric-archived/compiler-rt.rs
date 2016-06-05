@@ -10,6 +10,12 @@ matrix:
     - env: TARGET=cortex-m0
       dist: trusty
       sudo: required
+    - env: TARGET=cortex-m0plus
+      dist: trusty
+      sudo: required
+    - env: TARGET=cortex-m1
+      dist: trusty
+      sudo: required
     - env: TARGET=cortex-m3
       dist: trusty
       sudo: required
