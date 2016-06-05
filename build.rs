@@ -512,7 +512,10 @@ fn build(src: &Path, target: &Target) {
                 continue
             }
 
-            if target.cpu() == Some("cortex-m4") && SP_FPU_BLACKLIST.contains(source) {
+            if target.cpu() == Some("cortex-m4") ||
+                (target.cpu() == Some("cortex-m7") &&
+                 target.features().map(|f| f.contains("+fp-only-sp")) == Some(true)) &&
+                SP_FPU_BLACKLIST.contains(source) {
                 continue
             }
 
@@ -554,6 +557,11 @@ fn build(src: &Path, target: &Target) {
     if target.cpu() == Some("cortex-m4") &&
         target.features().map(|f| f.contains("+soft-float")) != Some(true) {
             config.flag("-mfpu=fpv4-sp-d16");
+    }
+
+    if target.cpu() == Some("cortex-m7") &&
+        target.features().map(|f| f.contains("+fp-only-sp")) == Some(true) {
+            config.flag("-mfpu=fpv5-sp-d16");
     }
 
     config.compile("libcompiler-rt.a");

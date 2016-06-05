@@ -28,6 +28,9 @@ matrix:
     - env: TARGET=cortex-m7
       dist: trusty
       sudo: required
+    - env: TARGET=cortex-m7f-sp
+      dist: trusty
+      sudo: required
     - env: TARGET=no-linker-field
       dist: trusty
       sudo: required
