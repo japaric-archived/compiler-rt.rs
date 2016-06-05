@@ -383,6 +383,36 @@ fn build(src: &Path, target: &Target) {
     const THUMB_BLACKLIST: &'static [&'static str] = &["arm/aeabi_cdcmp.S",
                                                        "arm/aeabi_cfcmp.S"];
 
+    const ARMV6M_BLACKLIST: &'static [&'static str] = &["arm/aeabi_dcmp.S",
+                                                        "arm/aeabi_fcmp.S",
+                                                        "arm/aeabi_ldivmod.S",
+                                                        "arm/aeabi_uldivmod.S",
+                                                        "arm/clzdi2.S",
+                                                        "arm/clzsi2.S",
+                                                        "arm/comparesf2.S",
+                                                        "arm/divmodsi4.S",
+                                                        "arm/divsi3.S",
+                                                        "arm/modsi3.S",
+                                                        "arm/negdf2vfp.S",
+                                                        "arm/negsf2vfp.S",
+                                                        "arm/switch16.S",
+                                                        "arm/switch32.S",
+                                                        "arm/switch8.S",
+                                                        "arm/switchu8.S",
+                                                        "arm/sync_fetch_and_add_4.S",
+                                                        "arm/sync_fetch_and_and_4.S",
+                                                        "arm/sync_fetch_and_max_4.S",
+                                                        "arm/sync_fetch_and_min_4.S",
+                                                        "arm/sync_fetch_and_nand_4.S",
+                                                        "arm/sync_fetch_and_or_4.S",
+                                                        "arm/sync_fetch_and_sub_4.S",
+                                                        "arm/sync_fetch_and_umax_4.S",
+                                                        "arm/sync_fetch_and_umin_4.S",
+                                                        "arm/sync_fetch_and_xor_4.S",
+                                                        "arm/udivmodsi4.S",
+                                                        "arm/udivsi3.S",
+                                                        "arm/umodsi3.S"];
+
     const OS_NONE_BLACKLIST: &'static [&'static str] = &["enable_execute_stack.c"];
 
     const NON_HF_BLACKLIST: &'static [&'static str] = &["arm/adddf3vfp.S",
@@ -435,6 +465,10 @@ fn build(src: &Path, target: &Target) {
     if target.arch_is("arm") {
         for source in ARM_SOURCES {
             if target.llvm_target().starts_with("thumb") && THUMB_BLACKLIST.contains(source) {
+                continue
+            }
+
+            if target.llvm_target().starts_with("thumbv6m") && ARMV6M_BLACKLIST.contains(source) {
                 continue
             }
 
