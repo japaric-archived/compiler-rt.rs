@@ -101,6 +101,10 @@ impl Target {
         self.spec.as_ref().and_then(|spec| spec.optional("cpu"))
     }
 
+    fn features(&self) -> Option<&str> {
+        self.spec.as_ref().and_then(|spec| spec.optional("features"))
+    }
+
     fn llvm_target(&self) -> &str {
         // TODO(unwrap_or) for *most* built-in targets, their name matches its `llvm-target` field.
         // The exceptions (e.g. aarch64-apple-ios) should be handled here.
@@ -381,7 +385,17 @@ fn build(src: &Path, target: &Target) {
 
     // NOTE These asm implementations only work in ARM mode. IOW, these don't work in THUMB mode.
     const THUMB_BLACKLIST: &'static [&'static str] = &["arm/aeabi_cdcmp.S",
-                                                       "arm/aeabi_cfcmp.S"];
+                                                       "arm/aeabi_cfcmp.S",
+                                                       "arm/eqdf2vfp.S",
+                                                       "arm/gedf2vfp.S",
+                                                       "arm/gtdf2vfp.S",
+                                                       "arm/ledf2vfp.S",
+                                                       "arm/ltdf2vfp.S",
+                                                       "arm/ltsf2vfp.S",
+                                                       "arm/nedf2vfp.S",
+                                                       "arm/nesf2vfp.S",
+                                                       "arm/unorddf2vfp.S",
+                                                       "arm/unordsf2vfp.S"];
 
     const ARMV6M_BLACKLIST: &'static [&'static str] = &["arm/aeabi_dcmp.S",
                                                         "arm/aeabi_fcmp.S",
@@ -415,41 +429,57 @@ fn build(src: &Path, target: &Target) {
 
     const OS_NONE_BLACKLIST: &'static [&'static str] = &["enable_execute_stack.c"];
 
-    const NON_HF_BLACKLIST: &'static [&'static str] = &["arm/adddf3vfp.S",
-                                                        "arm/addsf3vfp.S",
+    const SOFT_FLOAT_BLACKLIST: &'static [&'static str] = &["arm/adddf3vfp.S",
+                                                            "arm/addsf3vfp.S",
+                                                            "arm/divdf3vfp.S",
+                                                            "arm/divsf3vfp.S",
+                                                            "arm/eqdf2vfp.S",
+                                                            "arm/eqsf2vfp.S",
+                                                            "arm/extendsfdf2vfp.S",
+                                                            "arm/fixdfsivfp.S",
+                                                            "arm/fixdfsivfp.S",
+                                                            "arm/fixsfsivfp.S",
+                                                            "arm/fixunsdfsivfp.S",
+                                                            "arm/fixunssfsivfp.S",
+                                                            "arm/floatsidfvfp.S",
+                                                            "arm/floatsisfvfp.S",
+                                                            "arm/floatunssidfvfp.S",
+                                                            "arm/floatunssisfvfp.S",
+                                                            "arm/gedf2vfp.S",
+                                                            "arm/gesf2vfp.S",
+                                                            "arm/gtdf2vfp.S",
+                                                            "arm/gtsf2vfp.S",
+                                                            "arm/ledf2vfp.S",
+                                                            "arm/lesf2vfp.S",
+                                                            "arm/ltdf2vfp.S",
+                                                            "arm/ltsf2vfp.S",
+                                                            "arm/muldf3vfp.S",
+                                                            "arm/mulsf3vfp.S",
+                                                            "arm/nedf2vfp.S",
+                                                            "arm/nesf2vfp.S",
+                                                            "arm/restore_vfp_d8_d15_regs.S",
+                                                            "arm/save_vfp_d8_d15_regs.S",
+                                                            "arm/subdf3vfp.S",
+                                                            "arm/subsf3vfp.S",
+                                                            "arm/truncdfsf2vfp.S",
+                                                            "arm/unorddf2vfp.S",
+                                                            "arm/unordsf2vfp.S"];
+
+    // NOTE these intrinsics require a DP FPU
+    const SP_FPU_BLACKLIST: &'static [&'static str] = &["arm/adddf3vfp.S",
                                                         "arm/divdf3vfp.S",
-                                                        "arm/divsf3vfp.S",
-                                                        "arm/eqdf2vfp.S",
                                                         "arm/eqsf2vfp.S",
                                                         "arm/extendsfdf2vfp.S",
                                                         "arm/fixdfsivfp.S",
-                                                        "arm/fixdfsivfp.S",
-                                                        "arm/fixsfsivfp.S",
                                                         "arm/fixunsdfsivfp.S",
-                                                        "arm/fixunssfsivfp.S",
                                                         "arm/floatsidfvfp.S",
-                                                        "arm/floatsisfvfp.S",
                                                         "arm/floatunssidfvfp.S",
-                                                        "arm/floatunssisfvfp.S",
-                                                        "arm/gedf2vfp.S",
                                                         "arm/gesf2vfp.S",
-                                                        "arm/gtdf2vfp.S",
                                                         "arm/gtsf2vfp.S",
-                                                        "arm/ledf2vfp.S",
                                                         "arm/lesf2vfp.S",
-                                                        "arm/ltdf2vfp.S",
-                                                        "arm/ltsf2vfp.S",
                                                         "arm/muldf3vfp.S",
-                                                        "arm/mulsf3vfp.S",
-                                                        "arm/nedf2vfp.S",
-                                                        "arm/nesf2vfp.S",
-                                                        "arm/restore_vfp_d8_d15_regs.S",
-                                                        "arm/save_vfp_d8_d15_regs.S",
                                                         "arm/subdf3vfp.S",
-                                                        "arm/subsf3vfp.S",
-                                                        "arm/truncdfsf2vfp.S",
-                                                        "arm/unorddf2vfp.S",
-                                                        "arm/unordsf2vfp.S"];
+                                                        "arm/truncdfsf2vfp.S"];
 
     let mut config = Config::new();
     for source in GENERIC_SOURCES {
@@ -474,7 +504,15 @@ fn build(src: &Path, target: &Target) {
 
             // FIXME this is wrong for Cortex-M processors, e.g. the llvm-target field of the
             // cortex-m4f target  doesn't end in hf but it does support FPU instructions.
-            if !target.llvm_target().ends_with("hf") && NON_HF_BLACKLIST.contains(source) {
+            if !target.llvm_target().starts_with("thumbv7em") ||
+                target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
+                target.cpu().is_none() &&
+                SOFT_FLOAT_BLACKLIST.contains(source)
+            {
+                continue
+            }
+
+            if target.cpu() == Some("cortex-m4") && SP_FPU_BLACKLIST.contains(source) {
                 continue
             }
 
@@ -510,6 +548,12 @@ fn build(src: &Path, target: &Target) {
     // THUMB mode
     if target.llvm_target().starts_with("thumb") {
         config.flag("-mthumb");
+    }
+
+    // FPU
+    if target.cpu() == Some("cortex-m4") &&
+        target.features().map(|f| f.contains("+soft-float")) != Some(true) {
+            config.flag("-mfpu=fpv4-sp-d16");
     }
 
     config.compile("libcompiler-rt.a");
