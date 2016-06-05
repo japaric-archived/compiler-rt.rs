@@ -14,7 +14,7 @@ main() {
 
     case $TARGET in
         cortex-m*|thumb*)
-            arm-none-eabi-readelf -h $(find -name libcompiler-rt.a)
+            arm-none-eabi-readelf -A $(find -name libcompiler-rt.a)
         ;;
     esac
 }
