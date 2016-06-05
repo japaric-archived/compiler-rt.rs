@@ -13,7 +13,7 @@ main() {
     cargo build --target $TARGET
 
     case $TARGET in
-        cortex-m*|thumb*)
+        cortex-m*|thumbv*)
             arm-none-eabi-readelf -A $(find -name libcompiler-rt.a)
         ;;
     esac

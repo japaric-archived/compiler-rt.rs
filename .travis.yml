@@ -7,6 +7,9 @@ matrix:
   exclude:
     - rust: nightly
   include:
+    - env: TARGET=cortex-m0
+      dist: trusty
+      sudo: required
     - env: TARGET=cortex-m3
       dist: trusty
       sudo: required
@@ -16,7 +19,13 @@ matrix:
     - env: TARGET=no-linker-field
       dist: trusty
       sudo: required
+    - env: TARGET=thumbv6m-none-eabi
+      dist: trusty
+      sudo: required
     - env: TARGET=thumbv7m-none-eabi
+      dist: trusty
+      sudo: required
+    - env: TARGET=thumbv7em-none-eabi
       dist: trusty
       sudo: required
     - env: TARGET=x86_64-unknown-linux-gnu

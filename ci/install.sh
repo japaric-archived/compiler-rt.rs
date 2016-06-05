@@ -4,7 +4,7 @@ set -ex
 
 main() {
     case $TARGET in
-        cortex-m* | no-linker-field | thumbv7m-none-eabi)
+        cortex-m* | no-linker-field | thumbv*)
             sudo apt-get install -y --force-yes --no-install-recommends \
                  gcc-arm-none-eabi libnewlib-dev
             ;;
