@@ -502,8 +502,6 @@ fn build(src: &Path, target: &Target) {
                 continue
             }
 
-            // FIXME this is wrong for Cortex-M processors, e.g. the llvm-target field of the
-            // cortex-m4f target  doesn't end in hf but it does support FPU instructions.
             if !target.llvm_target().starts_with("thumbv7em") ||
                 target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
                 target.cpu().is_none() &&
@@ -559,9 +557,12 @@ fn build(src: &Path, target: &Target) {
             config.flag("-mfpu=fpv4-sp-d16");
     }
 
-    if target.cpu() == Some("cortex-m7") &&
-        target.features().map(|f| f.contains("+fp-only-sp")) == Some(true) {
+    if target.cpu() == Some("cortex-m7") {
+        if target.features().map(|f| f.contains("+fp-only-sp")) == Some(true) {
             config.flag("-mfpu=fpv5-sp-d16");
+        } else if target.features().map(|f| f.contains("+soft-float")) != Some(true) {
+            config.flag("-mfpu=fpv5-d16");
+        }
     }
 
     config.compile("libcompiler-rt.a");
