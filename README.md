@@ -1,3 +1,7 @@
+[![Build Status][status]](https://travis-ci.org/japaric/compiler-rt.rs)
+
+[status]: https://travis-ci.org/japaric/compiler-rt.rs.svg?branch=master
+
 # `compiler-rt.rs`
 
 > Build compiler-rt using build.rs but without relying on its CMake build system.
