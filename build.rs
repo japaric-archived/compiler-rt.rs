@@ -491,26 +491,24 @@ fn build(src: &Path, target: &Target) {
     if target.arch_is("arm") {
         for source in ARM_SOURCES {
             if target.llvm_target().starts_with("thumb") && THUMB_BLACKLIST.contains(source) {
-                continue
+                continue;
             }
 
             if target.llvm_target().starts_with("thumbv6m") && ARMV6M_BLACKLIST.contains(source) {
-                continue
+                continue;
             }
 
             if !target.llvm_target().starts_with("thumbv7em") ||
-                target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
-                target.cpu().is_none() &&
-                SOFT_FLOAT_BLACKLIST.contains(source)
-            {
-                continue
+               target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
+               target.cpu().is_none() && SOFT_FLOAT_BLACKLIST.contains(source) {
+                continue;
             }
 
             if target.cpu() == Some("cortex-m4") ||
-                (target.cpu() == Some("cortex-m7") &&
-                 target.features().map(|f| f.contains("+fp-only-sp")) == Some(true)) &&
-                SP_FPU_BLACKLIST.contains(source) {
-                continue
+               (target.cpu() == Some("cortex-m7") &&
+                target.features().map(|f| f.contains("+fp-only-sp")) == Some(true)) &&
+               SP_FPU_BLACKLIST.contains(source) {
+                continue;
             }
 
             config.file(src.join("lib/builtins").join(source));
@@ -549,8 +547,8 @@ fn build(src: &Path, target: &Target) {
 
     // FPU
     if target.cpu() == Some("cortex-m4") &&
-        target.features().map(|f| f.contains("+soft-float")) != Some(true) {
-            config.flag("-mfpu=fpv4-sp-d16");
+       target.features().map(|f| f.contains("+soft-float")) != Some(true) {
+        config.flag("-mfpu=fpv4-sp-d16");
     }
 
     if target.cpu() == Some("cortex-m7") {
