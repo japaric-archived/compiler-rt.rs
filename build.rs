@@ -498,9 +498,9 @@ fn build(src: &Path, target: &Target) {
                 continue;
             }
 
-            if !target.llvm_target().starts_with("thumbv7em") ||
-               target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
-               target.cpu().is_none() && SOFT_FLOAT_BLACKLIST.contains(source) {
+            if (!target.llvm_target().starts_with("thumbv7em") ||
+                target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
+                target.cpu().is_none()) && SOFT_FLOAT_BLACKLIST.contains(source) {
                 continue;
             }
 
