@@ -14,8 +14,15 @@ main() {
 
     case $TARGET in
         cortex-m*|thumbv*)
-            arm-none-eabi-readelf -A $(find -name libcompiler-rt.a)
-            arm-none-eabi-nm -Cg --defined-only $(find -name libcompiler-rt.a)
+            local staticlib=$(find -name libcompiler-rt.a)
+            local symbols=$(arm-none-eabi-nm -Cg --defined-only $staticlib | grep '^[0-9]' | cut -d' ' -f3)
+
+            for symbol in $symbols; do
+                echo $symbol
+            done
+            echo "Total: $(echo $symbols | wc -w) symbols"
+
+            arm-none-eabi-readelf -A $staticlib
         ;;
     esac
 }
