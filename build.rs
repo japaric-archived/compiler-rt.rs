@@ -504,9 +504,9 @@ fn build(src: &Path, target: &Target) {
                 continue;
             }
 
-            if target.cpu() == Some("cortex-m4") ||
-               (target.cpu() == Some("cortex-m7") &&
-                target.features().map(|f| f.contains("+fp-only-sp")) == Some(true)) &&
+            if (target.cpu() == Some("cortex-m4") ||
+                           (target.cpu() == Some("cortex-m7") &&
+                            target.features().map(|f| f.contains("+fp-only-sp")) == Some(true))) &&
                SP_FPU_BLACKLIST.contains(source) {
                 continue;
             }
