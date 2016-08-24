@@ -1,3 +1,22 @@
+# Status
+
+This project has been deprecated. You might be interested in its spiritual successor:
+[rustc-builtins].
+
+The stuff in this repository is being upstreamed (or already landed) in [rust-lang/rust#35021] as
+part of our effort of making the std crate easily compilable with Cargo. That PR doesn't include
+support for Cortex-M targets though. If you need compiler-rt intrinsics for those targets, check
+out the [rustc-builtins] project where we are porting compiler-rt intrinsics to Rust. I believe
+that, at the time of writing this notice, rustc-builtins already supports most of the intrinsics
+needed by Cortex-M targets.
+
+[rust-lang/rust#35021]: https://github.com/rust-lang/rust/pull/35021
+[rustc-builtins]: https://github.com/japaric/rustc-builtins
+
+-- @japaric, 2016-08-23
+
+---
+
 [![Build Status][status]](https://travis-ci.org/japaric/compiler-rt.rs)
 
 [status]: https://travis-ci.org/japaric/compiler-rt.rs.svg?branch=master
